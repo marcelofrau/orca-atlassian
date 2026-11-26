@@ -179,6 +179,17 @@ export default function activate(orca: OrcaWorkerApi): void {
     return (await resolve(orca, product)).status
   })
 
+  orca.panels.handle('conn.configure', async ({ product, baseUrl, scopes }) => {
+    const base = normaliseBase(baseUrl)
+    if (!base) return { ...(await resolve(orca, product)).status, error: `"${baseUrl}" is not an http(s) address.` }
+    await orca.settings.set(product === 'confluence' ? 'confluenceUrl' : 'jiraUrl', base)
+    if (typeof scopes === 'string') {
+      const keys = product === 'confluence' ? spaceKeys(scopes) : projectKeys(scopes)
+      await orca.settings.set(product === 'confluence' ? 'confluenceSpaces' : 'jiraProjects', keys.join(', '))
+    }
+    return test(orca, product)
+  })
+
   orca.panels.handle('scopes', async ({ product }) => {
     const settings = await orca.settings.get()
     return { keys: product === 'jira' ? projectKeys(settings.jiraProjects) : spaceKeys(settings.confluenceSpaces) }

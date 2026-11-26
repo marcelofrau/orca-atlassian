@@ -38,6 +38,8 @@ declare module 'orca' {
     /** Saves the token in Orca's encrypted secrets, then tests it. */
     'conn.setToken': { input: { product: Product; token: string }; output: ConnectionStatus }
     'conn.clearToken': { input: { product: Product }; output: ConnectionStatus }
+    /** Saves the base URL (and, when given, the space or project keys) in Settings, then tests the connection. */
+    'conn.configure': { input: { product: Product; baseUrl: string; scopes?: string }; output: ConnectionStatus }
     /** Confluence: text, page id, page URL or CQL. Jira: text, key, issue URL or JQL. `scope` is a space or project key, '' for all. */
     search: { input: { product: Product; query: string; scope: string; raw: boolean }; output: { results: Hit[]; total: number; error?: string } }
     /** Space keys (Confluence) or project keys (Jira) from Settings, for the scope picker. */

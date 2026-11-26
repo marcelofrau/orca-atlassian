@@ -98,6 +98,22 @@ test('asks for the right token before searching', async () => {
   await worker.deactivate()
 })
 
+test('configures a site from the panel and refuses a bad URL', async () => {
+  const restore = fakeAtlassian()
+  const { worker } = await setupWorker()
+  try {
+    const bad = await worker.request('conn.configure', { product: 'jira', baseUrl: 'jira.example.com' })
+    assert.ok(bad.error?.includes('not an http(s) address'))
+    const good = await worker.request('conn.configure', { product: 'jira', baseUrl: `${JIRA}/`, scopes: 'doc ops,doc' })
+    assert.equal(good.baseUrl, JIRA)
+    assert.equal(good.user, 'Jane Doe')
+    assert.deepEqual(await worker.request('scopes', { product: 'jira' }), { keys: ['DOC', 'OPS'] })
+  } finally {
+    restore()
+    await worker.deactivate()
+  }
+})
+
 test('searches Confluence and Jira, and a key or id goes straight to it', async () => {
   const restore = fakeAtlassian()
   const { worker } = await setupWorker()

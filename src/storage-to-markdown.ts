@@ -191,9 +191,13 @@ function inlineEl(n: El, ctx: Ctx): string {
       return n.attrs.href ? link(text, n.attrs.href) : text
     }
     case 'time': return n.attrs.datetime || inline(n.kids, ctx)
-    case 'img': return n.attrs.src ? link(`Image: ${n.attrs.src}`, n.attrs.src) : ''
+    // Images stand apart: two in a row would otherwise read as one glued link.
+    case 'img': return n.attrs.src ? ` ${link(`Image: ${n.attrs.src}`, n.attrs.src)} ` : ''
     case 'ac:link': return confLink(n, ctx)
-    case 'ac:image': return confImage(n, ctx)
+    case 'ac:image': {
+      const image = confImage(n, ctx)
+      return image ? ` ${image} ` : ''
+    }
     case 'ac:emoticon': return EMOTICONS[n.attrs['ac:name'] ?? ''] ?? ''
     case 'ac:placeholder': case 'ac:parameter': case 'ac:plain-text-body': case 'script': case 'style': case 'head': return ''
     case 'ac:structured-macro': case 'ac:macro': return macro(n, ctx).join(' ')

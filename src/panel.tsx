@@ -44,6 +44,8 @@ const selected = atom<Hit | null>(null)
 const busy = atom<string | null>(null)
 const notice = atom<{ tone: 'success' | 'danger'; text: string; link?: string } | null>(null)
 const tokenDraft = atom<Record<Product, string>>({ confluence: '', jira: '' })
+/** A base URL being typed; null while it shows the saved one. */
+const urlDraft = atom<Record<Product, string | null>>({ confluence: null, jira: null })
 const linkDraft = atom('')
 
 const patch = <T,>(record: Record<Product, T>, p: Product, value: T) => ({ ...record, [p]: value })
@@ -93,6 +95,12 @@ const openLink = () =>
     const answer = await plugin.request('link.open', { text: read(linkDraft) }, { timeoutMs: 60_000 })
     set(notice, { tone: answer.ok ? 'success' : 'danger', text: answer.message })
     if (answer.ok) set(linkDraft, '')
+  })
+
+const saveUrl = (p: Product) =>
+  work('Saving', async () => {
+    set(status, patch(read(status), p, await plugin.request('conn.configure', { product: p, baseUrl: read(urlDraft)[p] ?? '' })))
+    set(urlDraft, patch(read(urlDraft), p, null))
   })
 
 const saveToken = (p: Product) =>
@@ -164,9 +172,20 @@ function Connection(props: { p: Product }) {
   return (
     <Collapsible title="Connection" description={s?.user ? `Signed in as ${s.user}` : s?.hasToken ? 'Token saved' : 'Not connected'} defaultOpen={!s?.user}>
       <Stack gap="sm">
+        <Row gap="xs" align="end">
+          <Input
+            label={`${NAME[p]} base URL`}
+            placeholder={p === 'jira' ? 'https://jira.example.com' : 'https://confluence.example.com'}
+            value={read(urlDraft)[p] ?? s?.baseUrl ?? ''}
+            onChange={(value) => set(urlDraft, patch(read(urlDraft), p, value))}
+            onSubmit={() => saveUrl(p)}
+          />
+          <Button size="sm" variant="outline" disabled={working || read(urlDraft)[p] === null} onPress={() => saveUrl(p)}>
+            Save
+          </Button>
+        </Row>
         <Text muted size="xs">
-          Base URL, sign-in type and e-mail (Cloud) are in Settings → Plugins → Atlassian.
-          {s?.baseUrl ? ` Now: ${s.baseUrl}` : ''}
+          Cloud sign-in (e-mail and API token) and the {p === 'jira' ? 'project' : 'space'} list are in Settings → Plugins → Atlassian.
         </Text>
         <Input
           label={`${NAME[p]} token`}
