@@ -28,8 +28,12 @@ your code and agents.
   linked issues, attachments (as links) and comments.
 - **Confluence**: search by title or text, page id, page URL or raw CQL, filtered by the spaces in
   Settings. A page opens with headings, lists, tables, code, info/tip/note/warning panels (as
-  GitHub alerts), task lists, page links and Mermaid/PlantUML macros; draw.io diagrams and images
-  link back to the page.
+  GitHub alerts), task lists, page links and Mermaid macros.
+- **Pictures and diagrams in the copy**: images, and the previews of draw.io and Gliffy diagrams,
+  are downloaded with your token and embedded (so they show without a browser sign-in), in Jira
+  issues too. **PlantUML** macros are drawn on your machine, with the source below each picture,
+  when Java and `plantuml.jar` are installed (e.g. `scoop install plantuml` or
+  `brew install plantuml`); no PlantUML server is used, so no diagram leaves your machine.
 - **Copy link** copies `[Exact page title](url)` or `[DOC-12: Summary](url)`, read fresh.
 - **Open in Jira / Confluence** in your browser, and **Recently opened** for both.
 - Data Center and Server (personal access tokens) and Cloud (e-mail and API token). Tokens stay
@@ -91,8 +95,11 @@ open it again to refresh.
   **Open link** (or the panel's **Open a link** box).
 - Orca ignores shortcuts pressed inside a plugin's editor view (such as Markdown Themes), except
   save, so `Ctrl+Shift+L` does nothing there; use the status bar item.
-- Images, attachments and draw.io diagrams are links, not pictures. Unknown Confluence macros show
-  as *[name macro]* or keep their body.
+- Pictures are embedded as data URLs at the end of the file: up to 4 MB each and 24 MB per copy;
+  past that, and for images on other sites or attached to other pages, they stay links. draw.io
+  shows the preview Confluence last saved. PlantUML uses its built-in layout (no Graphviz needed),
+  and `!include` can reach public libraries such as C4-PlantUML but not local files. Unknown
+  Confluence macros show as *[name macro]* or keep their body.
 - Links inside a copy point to Jira or Confluence, not to other copies.
 - Desktop app only, and the tabs need a local workspace in focus.
 

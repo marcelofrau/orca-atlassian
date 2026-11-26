@@ -2,7 +2,7 @@
   "manifestVersion": 2,
   "id": "atlassian",
   "name": "Atlassian",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Read Jira issues and Confluence pages inside Orca, without the browser sign-in: search from the sidebar, open as read-only Markdown tabs, open any copied link with Ctrl+Shift+L, copy [Exact title](url) links. Data Center, Server and Cloud.",
   "author": {
     "name": "Marcelo Frau",
@@ -129,6 +129,14 @@
         "key": "jiraProjects",
         "title": "Jira projects",
         "description": "Project keys for the project picker, separated by commas, e.g. DOC, OPS.",
+        "type": "string",
+        "default": "",
+        "maxLength": 500
+      },
+      {
+        "key": "plantumlJar",
+        "title": "plantuml.jar path",
+        "description": "PlantUML diagrams in pages are drawn on this machine with Java and plantuml.jar (no PlantUML server). Empty: PLANTUML_JAR, then the scoop, Homebrew and Linux package locations. Without it the diagrams stay as source.",
         "type": "string",
         "default": "",
         "maxLength": 500

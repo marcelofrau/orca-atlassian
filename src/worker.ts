@@ -1,8 +1,9 @@
 // The plugin's worker: it holds the tokens, talks to Confluence and Jira and writes the read-only
 // Markdown copies that open in tabs. Orca starts it on first use and transpiles this file itself.
 import type { OrcaWorkerApi } from 'orca/worker'
+import { findPlantUmlJar, localPlantUml, siteImages, withAssets, type PlantUmlRenderer } from './assets'
 import { copyText, readText } from './clipboard'
-import { currentUser, page, search, type Connection, type Page } from './confluence'
+import { authorization, currentUser, page, search, type Connection, type Page } from './confluence'
 import { detectLink } from './detect'
 import { issue, myself, searchIssues, type Issue, type JiraConnection } from './jira'
 import { issueDocument } from './jira-document'
@@ -119,12 +120,22 @@ export default function activate(orca: OrcaWorkerApi): void {
     return null
   }
 
+  async function plantUml(): Promise<PlantUmlRenderer | null> {
+    const jar = findPlantUmlJar((await orca.settings.get()).plantumlJar)
+    return jar ? localPlantUml(jar) : null
+  }
+
   async function openPage(id: string): Promise<Outcome> {
     const { conn, status } = await resolve(orca, 'confluence')
     if (!conn) return { ok: false, message: notReady(status) }
     const found = await page(fetch, conn, id)
-    const body = storageToMarkdown(found.storage, { baseUrl: conn.baseUrl, spaceKey: found.spaceKey, pageUrl: found.url })
-    const refused = await openTab(`confluence/${found.spaceKey || 'page'}/${pageFileName(found.id, found.title)}`, pageDocument(found, body, new Date()))
+    const fetchedAt = new Date()
+    const text = await withAssets(
+      (assets) => pageDocument(found, storageToMarkdown(found.storage, { baseUrl: conn.baseUrl, spaceKey: found.spaceKey, pageUrl: found.url, assets }), fetchedAt),
+      siteImages(fetch, conn.baseUrl, authorization(conn), found.id),
+      await plantUml()
+    )
+    const refused = await openTab(`confluence/${found.spaceKey || 'page'}/${pageFileName(found.id, found.title)}`, text)
     if (refused) return refused
     orca.panels.post('recent.changed', { results: await remember(orca, pageHit(found)) })
     return { ok: true, message: `Opened ${found.title} (version ${found.version}).` }
@@ -134,9 +145,14 @@ export default function activate(orca: OrcaWorkerApi): void {
     const { conn, status } = await resolve(orca, 'jira')
     if (!conn) return { ok: false, message: notReady(status) }
     const found: Issue = await issue(fetch, conn, key)
-    const toMarkdown = (html: string, pageUrl: string) => storageToMarkdown(html, { baseUrl: conn.baseUrl, spaceKey: '', pageUrl })
+    const fetchedAt = new Date()
+    const text = await withAssets(
+      (assets) => issueDocument(found, { baseUrl: conn.baseUrl }, fetchedAt, (html, pageUrl) => storageToMarkdown(html, { baseUrl: conn.baseUrl, spaceKey: '', pageUrl, assets })),
+      siteImages(fetch, conn.baseUrl, authorization(conn)),
+      null
+    )
     const project = found.key.split('-')[0]
-    const refused = await openTab(`jira/${project}/${found.key}.md`, issueDocument(found, { baseUrl: conn.baseUrl }, new Date(), toMarkdown))
+    const refused = await openTab(`jira/${project}/${found.key}.md`, text)
     if (refused) return refused
     orca.panels.post('recent.changed', { results: await remember(orca, issueHit(found)) })
     return { ok: true, message: `Opened ${found.key}: ${found.summary}.` }

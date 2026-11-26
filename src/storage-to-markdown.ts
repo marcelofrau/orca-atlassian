@@ -1,6 +1,18 @@
 // Confluence storage format (XHTML) to GitHub-flavoured Markdown. No DOM, no dependencies, never throws.
 
-export type Ctx = { baseUrl: string; spaceKey: string; pageUrl: string }
+export type Ctx = { baseUrl: string; spaceKey: string; pageUrl: string; assets?: Assets }
+
+/**
+ * Embeds images and diagrams. Each call names one: an attachment file name of this page (draw.io and
+ * Gliffy previews are `<name>.png`), an image URL, or a PlantUML source. It answers the reference
+ * label to embed it with (`![alt][label]`, defined by the caller), or nothing to keep a plain link.
+ */
+export interface Assets {
+  image(ref: string): string | undefined
+  plantuml(source: string): string | undefined
+}
+
+const embedded = (alt: string, label: string) => `![${alt.replace(/[[\]\\]/g, '')}][${label}]`
 
 type El = { tag: string; attrs: Record<string, string>; kids: Node[] }
 type Node = string | El
@@ -192,7 +204,12 @@ function inlineEl(n: El, ctx: Ctx): string {
     }
     case 'time': return n.attrs.datetime || inline(n.kids, ctx)
     // Images stand apart: two in a row would otherwise read as one glued link.
-    case 'img': return n.attrs.src ? ` ${link(`Image: ${n.attrs.src}`, n.attrs.src)} ` : ''
+    case 'img': {
+      const src = n.attrs.src
+      if (!src) return ''
+      const label = ctx.assets?.image(src)
+      return ` ${label ? embedded(n.attrs.alt || src.split('/').pop() || 'image', label) : link(`Image: ${src}`, src)} `
+    }
     case 'ac:link': return confLink(n, ctx)
     case 'ac:image': {
       const image = confImage(n, ctx)
@@ -233,9 +250,16 @@ function confLink(n: El, ctx: Ctx): string {
 
 function confImage(n: El, ctx: Ctx): string {
   const att = child(n, 'ri:attachment')
-  if (att) return link(`Image: ${att.attrs['ri:filename'] ?? ''}`, ctx.pageUrl)
+  if (att) {
+    const name = att.attrs['ri:filename'] ?? ''
+    // An attachment of another page (a ri:page inside) is not fetched; it stays a link.
+    const label = name && !child(att, 'ri:page') ? ctx.assets?.image(name) : undefined
+    return label ? embedded(name, label) : link(`Image: ${name}`, ctx.pageUrl)
+  }
   const url = child(n, 'ri:url')?.attrs['ri:value']
-  return url ? link(`Image: ${url}`, url) : ''
+  if (!url) return ''
+  const label = ctx.assets?.image(url)
+  return label ? embedded(url.split('/').pop() || 'image', label) : link(`Image: ${url}`, url)
 }
 
 // ---------- blocks ----------
@@ -364,8 +388,18 @@ function macro(n: El, ctx: Ctx): string[] {
     case 'status': return p.title ? [`**[${p.title.toUpperCase()}]**`] : []
     case 'toc': case 'anchor': return []
   }
+  if (name === 'plantuml') {
+    const label = raw.trim() ? ctx.assets?.plantuml(raw) : undefined
+    if (label) return [embedded('PlantUML diagram', label), `<details><summary>PlantUML source</summary>\n\n${fence(raw, 'plantuml')}\n\n</details>`]
+  }
   if (PLAIN_FENCES[name]) return [fence(raw, PLAIN_FENCES[name])]
-  if (DIAGRAMS.has(name)) return [link(`Diagram: ${p.diagramname || p.name || name}`, ctx.pageUrl)]
+  if (DIAGRAMS.has(name)) {
+    const diagram = p.diagramname || p.name || ''
+    const back = link(`Diagram: ${diagram || name}`, ctx.pageUrl)
+    // inc-drawio shows a diagram of another page; only this page's previews are fetched.
+    const label = diagram && name !== 'inc-drawio' ? ctx.assets?.image(`${diagram}.png`) : undefined
+    return label ? [embedded(diagram, label), back] : [back]
+  }
   if (rich) return body() // excerpt, section, column, details, div, span, layout and unknown macros
   return [`*[${name} macro]*`]
 }
