@@ -1,0 +1,82 @@
+{
+  "manifestVersion": 2,
+  "id": "confluence",
+  "name": "Confluence",
+  "version": "0.1.0",
+  "description": "Search Confluence from Orca's sidebar, open pages as read-only Markdown tabs, and copy [Exact title](url) links. Data Center, Server and Cloud.",
+  "author": {
+    "name": "Marcelo Frau",
+    "url": "https://github.com/marcelofrau"
+  },
+  "license": "GPL-3.0-only",
+  "repository": "https://github.com/marcelofrau/orca-confluence",
+  "homepage": "https://github.com/marcelofrau/orca-confluence",
+  "engines": {
+    "orca": ">=1.4.248"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "src/worker.ts",
+  "contributes": {
+    "panels": [
+      {
+        "id": "confluence",
+        "title": "Confluence",
+        "icon": "book",
+        "entry": "src/panel.tsx",
+        "ui": "components"
+      }
+    ],
+    "settings": [
+      {
+        "key": "baseUrl",
+        "title": "Base URL",
+        "description": "Your Confluence address: https://confluence.example.com for Data Center or Server, https://your-site.atlassian.net/wiki for Cloud.",
+        "type": "string",
+        "default": "",
+        "maxLength": 300
+      },
+      {
+        "key": "auth",
+        "title": "Sign-in",
+        "description": "How the token in the panel's Connection is sent.",
+        "type": "string",
+        "default": "bearer",
+        "enum": ["bearer", "basic"],
+        "enumLabels": ["Personal access token (Data Center, Server)", "E-mail and API token (Cloud)"]
+      },
+      {
+        "key": "email",
+        "title": "Atlassian e-mail (Cloud only)",
+        "description": "The account e-mail that goes with a Cloud API token. Leave empty for Data Center.",
+        "type": "string",
+        "default": "",
+        "maxLength": 200
+      },
+      {
+        "key": "spaces",
+        "title": "Spaces",
+        "description": "Space keys for the panel's space picker, separated by commas, e.g. DOC, TEAM.",
+        "type": "string",
+        "default": "",
+        "maxLength": 500
+      },
+      {
+        "key": "linkStyle",
+        "title": "Link style",
+        "description": "The address Copy link and the page copies use.",
+        "type": "string",
+        "default": "viewpage",
+        "enum": ["viewpage", "webui"],
+        "enumLabels": ["Stable page-id URL (…/pages/viewpage.action?pageId=…)", "The URL Confluence shows (pretty, changes with the title)"]
+      }
+    ]
+  },
+  "capabilities": [
+    { "kind": "storage:own" },
+    { "kind": "secrets:own" },
+    { "kind": "settings:own" },
+    { "kind": "workspace:read" },
+    { "kind": "workspace:write" }
+  ]
+}

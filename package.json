@@ -1,0 +1,16 @@
+{
+  "name": "orca-confluence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Confluence in Orca's sidebar: search, read-only Markdown tabs and readable links.",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "test": "orca plugin test .",
+    "check": "orca plugin check .",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
