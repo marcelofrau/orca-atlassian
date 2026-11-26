@@ -2,8 +2,8 @@
   "manifestVersion": 2,
   "id": "atlassian",
   "name": "Atlassian",
-  "version": "0.2.1",
-  "description": "Read Jira issues and Confluence pages inside Orca, without the browser sign-in: search from the sidebar, open as read-only Markdown tabs, open any copied link with Ctrl+Alt+O, copy [Exact title](url) links. Data Center, Server and Cloud.",
+  "version": "0.2.2",
+  "description": "Read Jira issues and Confluence pages inside Orca, without the browser sign-in: search from the sidebar, open as read-only Markdown tabs, open any copied link with Ctrl+Shift+L, copy [Exact title](url) links. Data Center, Server and Cloud.",
   "author": {
     "name": "Marcelo Frau",
     "url": "https://github.com/marcelofrau"
@@ -36,7 +36,7 @@
     "keybindings": [
       {
         "command": "open-copied-link",
-        "key": "Mod+Alt+O"
+        "key": "Mod+Shift+L"
       }
     ],
     "settings": [
@@ -54,8 +54,14 @@
         "description": "How the Confluence token in the panel is sent.",
         "type": "string",
         "default": "bearer",
-        "enum": ["bearer", "basic"],
-        "enumLabels": ["Personal access token (Data Center, Server)", "E-mail and API token (Cloud)"]
+        "enum": [
+          "bearer",
+          "basic"
+        ],
+        "enumLabels": [
+          "Personal access token (Data Center, Server)",
+          "E-mail and API token (Cloud)"
+        ]
       },
       {
         "key": "confluenceEmail",
@@ -79,8 +85,14 @@
         "description": "The page address Copy link and the page copies use.",
         "type": "string",
         "default": "viewpage",
-        "enum": ["viewpage", "webui"],
-        "enumLabels": ["Stable page-id URL (…/pages/viewpage.action?pageId=…)", "The URL Confluence shows (pretty, changes with the title)"]
+        "enum": [
+          "viewpage",
+          "webui"
+        ],
+        "enumLabels": [
+          "Stable page-id URL (…/pages/viewpage.action?pageId=…)",
+          "The URL Confluence shows (pretty, changes with the title)"
+        ]
       },
       {
         "key": "jiraUrl",
@@ -96,8 +108,14 @@
         "description": "How the Jira token in the panel is sent.",
         "type": "string",
         "default": "bearer",
-        "enum": ["bearer", "basic"],
-        "enumLabels": ["Personal access token (Data Center, Server)", "E-mail and API token (Cloud)"]
+        "enum": [
+          "bearer",
+          "basic"
+        ],
+        "enumLabels": [
+          "Personal access token (Data Center, Server)",
+          "E-mail and API token (Cloud)"
+        ]
       },
       {
         "key": "jiraEmail",
@@ -118,10 +136,20 @@
     ]
   },
   "capabilities": [
-    { "kind": "storage:own" },
-    { "kind": "secrets:own" },
-    { "kind": "settings:own" },
-    { "kind": "workspace:read" },
-    { "kind": "workspace:write" }
+    {
+      "kind": "storage:own"
+    },
+    {
+      "kind": "secrets:own"
+    },
+    {
+      "kind": "settings:own"
+    },
+    {
+      "kind": "workspace:read"
+    },
+    {
+      "kind": "workspace:write"
+    }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "orca-atlassian",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Jira issues and Confluence pages inside Orca: search, read-only Markdown tabs, open copied links, readable links.",
   "license": "GPL-3.0-only",

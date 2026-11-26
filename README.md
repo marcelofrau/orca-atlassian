@@ -18,7 +18,7 @@ your code and agents.
 
 ## Features
 
-- **Open copied link** (`Ctrl+Alt+O`, `Cmd+Alt+O` on macOS): copy any Jira or Confluence link
+- **Open copied link** (`Ctrl+Shift+L`, `Cmd+Shift+L` on macOS): copy any Jira or Confluence link
   (Orca's link menu has **Copy link**), press the shortcut, and it opens in a tab. Also takes a
   bare issue key such as `DOC-12`, a page id, or an old `/display/SPACE/Title` link.
 - **Jira**: search by text, issue key, issue URL or raw JQL, filtered by the projects in Settings;
@@ -70,7 +70,7 @@ orca plugin install marcelofrau/orca-atlassian --approve <fingerprint>
 
 | You want to | Do |
 | --- | --- |
-| Read a link you see in a terminal, chat or doc | **Copy link** on it, then `Ctrl+Alt+O` |
+| Read a link you see in a terminal, chat or doc | **Copy link** on it, then `Ctrl+Shift+L` |
 | Read a link or key you have | Paste it in **Open a link** at the top of the panel |
 | Find an issue or page | Search on the **Jira** or **Confluence** tab; switch **JQL**/**CQL** on for raw queries |
 | See your open issues | Search Jira with an empty box |

@@ -282,7 +282,7 @@ export default function Panel() {
         {working ? <Spinner label={working} labelHidden /> : null}
       </Row>
       <Text muted size="xs">
-        Or copy a link anywhere and press Ctrl+Alt+O (Atlassian: Open copied link).
+        Or copy a link anywhere and press Ctrl+Shift+L (Atlassian: Open copied link).
       </Text>
       {note ? (
         <Callout tone={note.tone}>
