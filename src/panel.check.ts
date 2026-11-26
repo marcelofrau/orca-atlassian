@@ -1,9 +1,12 @@
 // `orca plugin check` renders the panel once per scenario, each with the worker on a fresh host
-// (no network there, so these show the states before and after a token is saved).
+// (no network there, so these show the states before and after the sites and tokens are set).
 import { defineCheck } from 'orca/testing'
 
 export default defineCheck({
   fresh: {},
-  configured: { settings: { baseUrl: 'https://wiki.example.com', spaces: 'DOC, OPS' } },
-  withToken: { settings: { baseUrl: 'https://wiki.example.com' }, secrets: { token: 'example' } }
+  configured: { settings: { confluenceUrl: 'https://wiki.example.com', confluenceSpaces: 'DOC', jiraUrl: 'https://jira.example.com', jiraProjects: 'DOC' } },
+  withTokens: {
+    settings: { confluenceUrl: 'https://wiki.example.com', jiraUrl: 'https://jira.example.com' },
+    secrets: { confluenceToken: 'example', jiraToken: 'example' }
+  }
 })

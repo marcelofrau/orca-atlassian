@@ -42,3 +42,46 @@ export async function copyText(text: string, platform: NodeJS.Platform = process
   if (platform === 'darwin') return run('pbcopy', [], text)
   return (await run('wl-copy', [], text)) || run('xclip', ['-selection', 'clipboard'], text)
 }
+
+// Writes the clipboard as UTF-8 bytes to stdout, so accents survive the console code page.
+const WINDOWS_READ_SCRIPT =
+  '$ErrorActionPreference = "Stop"; Add-Type -AssemblyName System.Windows.Forms; ' +
+  '$text = [System.Windows.Forms.Clipboard]::GetText(); $bytes = [System.Text.Encoding]::UTF8.GetBytes($text); ' +
+  '$out = [Console]::OpenStandardOutput(); $out.Write($bytes, 0, $bytes.Length)'
+
+/** The clipboard's text, or null when it cannot be read. At most 64 KiB, which is plenty for a link. */
+function capture(file: string, args: string[]): Promise<string | null> {
+  return new Promise((resolve) => {
+    let child: ReturnType<typeof spawn>
+    try {
+      child = spawn(file, args, { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true })
+    } catch {
+      resolve(null)
+      return
+    }
+    const chunks: Buffer[] = []
+    let size = 0
+    const timer = setTimeout(() => {
+      child.kill()
+      resolve(null)
+    }, TIMEOUT_MS)
+    child.stdout?.on('data', (chunk: Buffer) => {
+      if (size < 65_536) chunks.push(chunk)
+      size += chunk.length
+    })
+    child.once('error', () => {
+      clearTimeout(timer)
+      resolve(null)
+    })
+    child.once('exit', (code) => {
+      clearTimeout(timer)
+      resolve(code === 0 ? Buffer.concat(chunks).toString('utf8').slice(0, 65_536) : null)
+    })
+  })
+}
+
+export async function readText(platform: NodeJS.Platform = process.platform): Promise<string | null> {
+  if (platform === 'win32') return capture('powershell.exe', ['-NoProfile', '-NonInteractive', '-STA', '-Command', WINDOWS_READ_SCRIPT])
+  if (platform === 'darwin') return capture('pbpaste', [])
+  return (await capture('wl-paste', ['--no-newline'])) ?? capture('xclip', ['-selection', 'clipboard', '-o'])
+}

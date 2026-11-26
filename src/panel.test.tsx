@@ -1,30 +1,31 @@
 // `orca plugin test .` runs this in Node with the same runtime and checks Orca uses.
 import { assert, mockHost, mount, test } from 'orca/testing'
 import * as panel from './panel'
-import type { PageHit } from './protocol'
+import type { Hit, Product } from './protocol'
 
-const hit: PageHit = {
+const page: Hit = {
+  product: 'confluence',
   id: '42',
   title: 'Basket design',
-  spaceKey: 'DOC',
-  spaceName: 'Docs',
+  detail: 'Docs · v3',
   url: 'https://wiki.example.com/pages/viewpage.action?pageId=42',
-  version: 3,
   updatedAt: 0
 }
 
+const signedIn = (product: Product) => ({ product, configured: true, hasToken: true, baseUrl: 'https://wiki.example.com', user: 'Jane Doe' })
+
 test('asks for a token when not signed in', async () => {
   const host = mockHost({
-    settings: { spaces: 'DOC' },
     requests: {
-      'conn.status': () => ({ configured: true, hasToken: false, baseUrl: 'https://wiki.example.com' }),
-      'conn.test': () => ({ configured: true, hasToken: false, baseUrl: 'https://wiki.example.com', error: 'Save a token first (Connection).' }),
+      'conn.status': ({ product }) => ({ product, configured: true, hasToken: false, baseUrl: 'https://wiki.example.com' }),
+      'conn.test': ({ product }) => ({ product, configured: true, hasToken: false, baseUrl: 'https://wiki.example.com', error: 'Save a token first.' }),
+      scopes: () => ({ keys: [] }),
       recent: () => ({ results: [] })
     }
   })
   const view = await mount(panel, { host })
   assert.ok(view.find({ text: 'Save and test' }))
-  assert.ok(!view.find({ type: 'Input', label: 'Search' }), 'no search box before signing in')
+  assert.ok(!view.find({ type: 'Input', label: 'Search Confluence' }), 'no search box before signing in')
   assert.deepEqual(view.errors, [])
   await view.unmount()
 })
@@ -32,13 +33,13 @@ test('asks for a token when not signed in', async () => {
 test('searches, selects a page and opens it', async () => {
   const opened: string[] = []
   const host = mockHost({
-    settings: { spaces: 'DOC, OPS' },
     requests: {
-      'conn.status': () => ({ configured: true, hasToken: true, baseUrl: 'https://wiki.example.com' }),
-      'conn.test': () => ({ configured: true, hasToken: true, baseUrl: 'https://wiki.example.com', user: 'Jane Doe' }),
+      'conn.status': ({ product }) => signedIn(product),
+      'conn.test': ({ product }) => signedIn(product),
+      scopes: () => ({ keys: ['DOC'] }),
       recent: () => ({ results: [] }),
-      search: () => ({ results: [hit], total: 1 }),
-      'page.open': ({ id }) => {
+      search: () => ({ results: [page], total: 1 }),
+      open: ({ id }) => {
         opened.push(id)
         return { ok: true, message: 'Opened Basket design (version 3).' }
       }

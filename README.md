@@ -1,90 +1,102 @@
 <div align="center">
 
-# Confluence for Orca
+# Atlassian for Orca
 
-**Search Confluence from [Orca](https://github.com/stablyai/orca)'s sidebar, read pages as Markdown tabs, and copy links with their exact titles.**
+**Read Jira issues and Confluence pages inside [Orca](https://github.com/stablyai/orca), without the browser sign-in: search from the sidebar, open them as Markdown tabs, open any copied link with one shortcut.**
 
+[![Release](https://img.shields.io/github/v/release/marcelofrau/orca-atlassian?sort=semver&color=0052cc)](https://github.com/marcelofrau/orca-atlassian/releases)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Orca](https://img.shields.io/badge/Orca-%E2%89%A5%201.4.248-6d645b)](https://github.com/stablyai/orca)
+[![Jira](https://img.shields.io/badge/Jira-Data%20Center%20%7C%20Server%20%7C%20Cloud-0052cc)](https://www.atlassian.com/software/jira)
 [![Confluence](https://img.shields.io/badge/Confluence-Data%20Center%20%7C%20Server%20%7C%20Cloud-0052cc)](https://www.atlassian.com/software/confluence)
 
 </div>
 
-Orca knows Jira, but not Confluence. This plugin adds a **Confluence** panel to Orca's right
-sidebar, so the pages you write code and docs against are a search away.
+When your company's single sign-on keeps Jira and Confluence out of Orca's built-in browser, this
+plugin reads them with your API tokens instead and shows them as Markdown tabs, right next to
+your code and agents.
 
 ## Features
 
-- **Search** by title or text, by page id, by pasting a page URL, or with raw CQL. Filter by the
-  spaces you list in Settings.
-- **Open in tab**: the page becomes a read-only Markdown copy in a tab, with headings, lists,
-  tables, code blocks, info/tip/note/warning panels (as GitHub alerts), task lists, page links and
-  Mermaid/PlantUML macros. draw.io diagrams and images link back to the page. Works great with
-  [Markdown Themes](https://github.com/marcelofrau/orca-markdown-themes).
-- **Copy link** copies `[Exact page title](url)`, read fresh from Confluence, ready to paste into
-  Markdown.
-- **Open in Confluence** opens the page in your browser.
-- **Recently opened** keeps the last 20 pages you opened.
-- Data Center and Server (personal access token) and Cloud (e-mail and API token).
+- **Open copied link** (`Ctrl+Alt+O`, `Cmd+Alt+O` on macOS): copy any Jira or Confluence link
+  (Orca's link menu has **Copy link**), press the shortcut, and it opens in a tab. Also takes a
+  bare issue key such as `DOC-12`, a page id, or an old `/display/SPACE/Title` link.
+- **Jira**: search by text, issue key, issue URL or raw JQL, filtered by the projects in Settings;
+  an empty search lists your open issues. An issue opens with its fields, description, sub-tasks,
+  linked issues, attachments (as links) and comments.
+- **Confluence**: search by title or text, page id, page URL or raw CQL, filtered by the spaces in
+  Settings. A page opens with headings, lists, tables, code, info/tip/note/warning panels (as
+  GitHub alerts), task lists, page links and Mermaid/PlantUML macros; draw.io diagrams and images
+  link back to the page.
+- **Copy link** copies `[Exact page title](url)` or `[DOC-12: Summary](url)`, read fresh.
+- **Open in Jira / Confluence** in your browser, and **Recently opened** for both.
+- Data Center and Server (personal access tokens) and Cloud (e-mail and API token). Tokens stay
+  in Orca's encrypted plugin secrets and go only to the base URLs you set.
+
+Copies are read-only Markdown files, so they look great with
+[Markdown Themes](https://github.com/marcelofrau/orca-markdown-themes).
 
 ## Install
 
 You need the Orca desktop app 1.4.248 or newer and its `orca` CLI.
 
 ```sh
-orca plugin install marcelofrau/orca-confluence
+orca plugin install marcelofrau/orca-atlassian
 ```
 
-The plugin runs a small Node worker (it calls your Confluence, writes the page copies and uses
+The plugin runs a small Node worker (it calls Jira and Confluence, writes the copies and uses
 your clipboard), so Orca asks you to approve it. The command prints what it gets and the exact
 command to approve it:
 
 ```sh
-orca plugin install marcelofrau/orca-confluence --approve <fingerprint>
+orca plugin install marcelofrau/orca-atlassian --approve <fingerprint>
 ```
 
 ## Set up
 
-1. In **Settings → Plugins → Confluence**, set the **Base URL**:
-   `https://confluence.example.com` for Data Center or Server,
-   `https://your-site.atlassian.net/wiki` for Cloud. For Cloud, also set **Sign-in** to
-   *E-mail and API token* and fill in your **Atlassian e-mail**.
-2. Optionally list your **Spaces** (`DOC, TEAM`) for the space picker, and pick the **Link style**.
-3. Open the **Confluence** panel in the right sidebar, paste a token under **Connection** and press
-   **Save and test**. Data Center/Server: a
-   [personal access token](https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html).
-   Cloud: an [API token](https://id.atlassian.com/manage-profile/security/api-tokens).
-
-The token is kept in Orca's encrypted plugin secrets and is only sent to your base URL. **Forget
-token** deletes it.
+1. In **Settings → Plugins → Atlassian**, set the **Jira base URL** and/or the **Confluence base
+   URL**:
+   - Data Center or Server: `https://jira.example.com`, `https://confluence.example.com`
+   - Cloud: `https://your-site.atlassian.net` and `https://your-site.atlassian.net/wiki`, with
+     **sign-in** set to *E-mail and API token* and your **e-mail** filled in.
+2. Optionally list your **Jira projects** and **Confluence spaces** for the pickers.
+3. Open the **Atlassian** panel in the right sidebar. On the **Jira** and **Confluence** tabs, paste
+   a token under **Connection** and press **Save and test**:
+   [personal access token](https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html)
+   for Data Center/Server, [API token](https://id.atlassian.com/manage-profile/security/api-tokens)
+   for Cloud.
 
 ## Use
 
 | You want to | Do |
 | --- | --- |
-| Find a page | Type in the search box and press Enter; pick a space, or switch **CQL** on for a raw query |
-| Jump to a page you have a link for | Paste its URL or id and press Enter |
-| Read it in Orca | Select it, then **Open in tab** (needs a local workspace in focus) |
-| Cite it in a doc | **Copy link**, then paste `[Exact page title](url)` |
+| Read a link you see in a terminal, chat or doc | **Copy link** on it, then `Ctrl+Alt+O` |
+| Read a link or key you have | Paste it in **Open a link** at the top of the panel |
+| Find an issue or page | Search on the **Jira** or **Confluence** tab; switch **JQL**/**CQL** on for raw queries |
+| See your open issues | Search Jira with an empty box |
+| Cite it in a doc | **Copy link**, then paste `[Exact title](url)` |
 
-Page copies are written to `<workspace>/.orca-confluence/pages/<SPACE>/<id>-<title>.md`. That
-folder has its own `.gitignore` (`*`), so copies never reach git. Each copy starts with front
-matter (id, version, URL, fetch time) and a note saying it is read-only. Edits are not sent back;
-**Open in tab** again to refresh it.
+Copies are written to `<workspace>/.orca-atlassian/jira/<PROJECT>/<KEY>.md` and
+`<workspace>/.orca-atlassian/confluence/<SPACE>/<id>-<title>.md`, in the focused workspace. That
+folder has its own `.gitignore` (`*`), so copies never reach git. Each starts with front matter
+(key or id, version, URL, fetch time) and a note saying it is read-only. Edits are not sent back;
+open it again to refresh.
 
 ## Limits
 
-- Read-only: nothing is written to Confluence.
-- Macros the converter does not know show as *[name macro]* or keep their body; images and
-  draw.io diagrams are links to the page, not pictures.
-- Links inside a copy point to Confluence, not to other copies.
-- Desktop app only, and the page tab needs a local workspace.
+- Read-only: nothing is written to Jira or Confluence.
+- Orca has no way for plugins to add items to its link menu, so links go through **Copy link** and
+  the shortcut (or the panel's **Open a link** box).
+- Images, attachments and draw.io diagrams are links, not pictures. Unknown Confluence macros show
+  as *[name macro]* or keep their body.
+- Links inside a copy point to Jira or Confluence, not to other copies.
+- Desktop app only, and the tabs need a local workspace in focus.
 
 ## Develop
 
 ```sh
-git clone https://github.com/marcelofrau/orca-confluence
-cd orca-confluence
+git clone https://github.com/marcelofrau/orca-atlassian
+cd orca-atlassian
 npm install            # TypeScript and Node types, for the type check only
 orca plugin dev load . # prints the approval fingerprint the first time
 npm test               # orca plugin test .
@@ -95,12 +107,13 @@ npm run typecheck
 | File | What it does |
 | --- | --- |
 | `src/panel.tsx` | The sidebar panel (Orca components) |
-| `src/worker.ts` | The worker: settings, token, requests from the panel |
-| `src/confluence.ts` | Confluence REST client (API v1) |
-| `src/storage-to-markdown.ts` | Storage format (XHTML and macros) to Markdown, no DOM |
-| `src/links.ts` | URLs, readable links, CQL, file names |
-| `src/tab-file.ts` | The focused workspace and the `.orca-confluence/` copies |
-| `src/clipboard.ts` | The OS clipboard (PowerShell, pbcopy, wl-copy or xclip) |
+| `src/worker.ts` | The worker: settings, tokens, panel requests and the shortcut command |
+| `src/jira.ts`, `src/jira-links.ts`, `src/jira-document.ts` | Jira REST v2 client, keys and JQL, the issue tab |
+| `src/confluence.ts`, `src/links.ts` | Confluence REST client, URLs, CQL, file names |
+| `src/storage-to-markdown.ts` | Confluence storage format and Jira's rendered HTML to Markdown, no DOM |
+| `src/detect.ts` | What a copied text points at |
+| `src/tab-file.ts` | The focused workspace and the `.orca-atlassian/` copies |
+| `src/clipboard.ts` | The OS clipboard (PowerShell, pbcopy/pbpaste, wl-clipboard or xclip) |
 | `src/protocol.ts` | The panel ↔ worker contract |
 
 ## License

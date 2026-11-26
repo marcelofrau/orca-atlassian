@@ -1,9 +1,9 @@
-// Read-only page copies live in `<workspace>/.orca-confluence/`, which carries its own `.gitignore`
-// (`*`) so they never reach git. Orca opens them in its own Markdown view (or a Markdown plugin's).
+// Read-only copies of pages and issues live in `<workspace>/.orca-atlassian/`, which carries its own
+// `.gitignore` (`*`) so they never reach git. Orca opens them in its own Markdown view (or a plugin's).
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 
-export const TAB_FOLDER = '.orca-confluence'
+export const TAB_FOLDER = '.orca-atlassian'
 
 export type HostCall = (method: string, params?: unknown) => Promise<any>
 export interface Workspace { id: string; path: string }

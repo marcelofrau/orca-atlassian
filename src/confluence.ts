@@ -1,7 +1,19 @@
 // A small Confluence REST client (Data Center/Server and Cloud, API v1). `fetch` is passed in, so
 // the tests run it against a fake server.
 import { pageUrl, type LinkStyle } from './links'
-import type { PageHit } from './protocol'
+
+/** One page as a search lists it. */
+export interface PageHit {
+  id: string
+  title: string
+  spaceKey: string
+  spaceName: string
+  /** Where the page lives, as the link style in Settings writes it. */
+  url: string
+  version: number
+  /** When it last changed, ms since the epoch; 0 when Confluence did not say. */
+  updatedAt: number
+}
 
 export interface Connection {
   baseUrl: string

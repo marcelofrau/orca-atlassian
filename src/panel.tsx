@@ -1,4 +1,5 @@
-// The Confluence sidebar panel. No build step: Orca strips the types and compiles the JSX.
+// The Atlassian sidebar panel: Confluence and Jira tabs, and a box that opens any copied link.
+// No build step: Orca strips the types and compiles the JSX.
 import {
   atom,
   Button,
@@ -6,7 +7,6 @@ import {
   Code,
   Collapsible,
   EmptyState,
-  Heading,
   IconButton,
   Input,
   List,
@@ -22,162 +22,173 @@ import {
   Spinner,
   Stack,
   Switch,
+  Tab,
+  Tabs,
   Text,
   type PanelContext
 } from 'orca'
-import { spaceKeys } from './links'
-import type { ConnectionStatus, PageHit } from './protocol'
+import type { ConnectionStatus, Hit, Product } from './protocol'
 
-const status = atom<ConnectionStatus | null>(null)
-const query = atom('query', '', { persist: 'plugin' })
-const space = atom('space', '', { persist: 'plugin' })
-const cql = atom('cql', false, { persist: 'plugin' })
-const spaces = atom<string[]>([])
-const results = atom<PageHit[] | null>(null)
-const total = atom(0)
-const recent = atom<PageHit[]>([])
-const selected = atom<PageHit | null>(null)
+const PRODUCTS: Product[] = ['confluence', 'jira']
+const NAME: Record<Product, string> = { confluence: 'Confluence', jira: 'Jira' }
+
+const product = atom<Product>('product', 'confluence', { persist: 'plugin' })
+const status = atom<Record<Product, ConnectionStatus | null>>({ confluence: null, jira: null })
+const scopes = atom<Record<Product, string[]>>({ confluence: [], jira: [] })
+const query = atom<Record<Product, string>>('query', { confluence: '', jira: '' }, { persist: 'plugin' })
+const scope = atom<Record<Product, string>>('scope', { confluence: '', jira: '' }, { persist: 'plugin' })
+const raw = atom<Record<Product, boolean>>('raw', { confluence: false, jira: false }, { persist: 'plugin' })
+const results = atom<Record<Product, { items: Hit[]; total: number } | null>>({ confluence: null, jira: null })
+const recent = atom<Hit[]>([])
+const selected = atom<Hit | null>(null)
 const busy = atom<string | null>(null)
 const notice = atom<{ tone: 'success' | 'danger'; text: string; link?: string } | null>(null)
-const tokenDraft = atom('')
+const tokenDraft = atom<Record<Product, string>>({ confluence: '', jira: '' })
+const linkDraft = atom('')
 
-async function refreshStatus(test = false): Promise<void> {
-  set(status, await plugin.request(test ? 'conn.test' : 'conn.status'))
-}
+const patch = <T,>(record: Record<Product, T>, p: Product, value: T) => ({ ...record, [p]: value })
 
-async function loadSettings(): Promise<void> {
-  set(spaces, spaceKeys(await settings.get('spaces')))
-}
-
-async function runSearch(): Promise<void> {
-  set(busy, 'Searching')
-  set(notice, null)
+async function work(label: string, job: () => Promise<void>): Promise<void> {
+  set(busy, label)
   try {
-    const answer = await plugin.request('search', { query: read(query), space: read(space), cql: read(cql) })
-    set(results, answer.results)
-    set(total, answer.total)
+    await job()
+  } finally {
+    set(busy, null)
+  }
+}
+
+async function refresh(p: Product, test = false): Promise<void> {
+  const answer = await plugin.request(test ? 'conn.test' : 'conn.status', { product: p })
+  set(status, patch(read(status), p, answer))
+}
+
+async function loadScopes(): Promise<void> {
+  const [c, j] = await Promise.all(PRODUCTS.map((p) => plugin.request('scopes', { product: p })))
+  set(scopes, { confluence: c.keys, jira: j.keys })
+}
+
+const runSearch = (p: Product) =>
+  work('Searching', async () => {
+    set(notice, null)
+    const answer = await plugin.request('search', { product: p, query: read(query)[p], scope: read(scope)[p], raw: read(raw)[p] })
+    set(results, patch(read(results), p, { items: answer.results, total: answer.total }))
     if (answer.error) set(notice, { tone: 'danger', text: answer.error })
-    if (answer.results.length === 1) set(selected, answer.results[0])
-  } finally {
-    set(busy, null)
-  }
-}
+    set(selected, answer.results.length === 1 ? answer.results[0] : null)
+  })
 
-async function openPage(hit: PageHit): Promise<void> {
-  set(busy, 'Opening')
-  try {
-    const answer = await plugin.request('page.open', { id: hit.id }, { timeoutMs: 60_000 })
+const openHit = (hit: Hit) =>
+  work('Opening', async () => {
+    const answer = await plugin.request('open', { product: hit.product, id: hit.id }, { timeoutMs: 60_000 })
     set(notice, { tone: answer.ok ? 'success' : 'danger', text: answer.message })
-  } finally {
-    set(busy, null)
-  }
-}
+  })
 
-async function copyLink(hit: PageHit): Promise<void> {
-  set(busy, 'Copying')
-  try {
-    const answer = await plugin.request('page.copyLink', { id: hit.id })
+const copyLink = (hit: Hit) =>
+  work('Copying', async () => {
+    const answer = await plugin.request('copyLink', { product: hit.product, id: hit.id })
     set(notice, { tone: answer.ok ? 'success' : 'danger', text: answer.message, link: answer.text })
-  } finally {
-    set(busy, null)
-  }
-}
+  })
 
-async function saveToken(): Promise<void> {
-  set(busy, 'Signing in')
-  try {
-    set(status, await plugin.request('conn.setToken', { token: read(tokenDraft) }))
-    set(tokenDraft, '')
-  } finally {
-    set(busy, null)
-  }
-}
+const openLink = () =>
+  work('Opening', async () => {
+    const answer = await plugin.request('link.open', { text: read(linkDraft) }, { timeoutMs: 60_000 })
+    set(notice, { tone: answer.ok ? 'success' : 'danger', text: answer.message })
+    if (answer.ok) set(linkDraft, '')
+  })
+
+const saveToken = (p: Product) =>
+  work('Signing in', async () => {
+    set(status, patch(read(status), p, await plugin.request('conn.setToken', { product: p, token: read(tokenDraft)[p] })))
+    set(tokenDraft, patch(read(tokenDraft), p, ''))
+  })
 
 export function setup(ctx: PanelContext): void {
   ctx.subscriptions.push(plugin.on('recent.changed', (payload) => set(recent, payload.results)))
   ctx.subscriptions.push(
     settings.onDidChange(() => {
-      void loadSettings()
-      void refreshStatus()
+      void loadScopes()
+      for (const p of PRODUCTS) void refresh(p)
     })
   )
-  void loadSettings()
-  void refreshStatus(true)
+  void loadScopes()
+  for (const p of PRODUCTS) void refresh(p, true)
   void plugin.request('recent').then((answer) => set(recent, answer.results))
 }
 
-function describe(hit: PageHit): string {
-  return [hit.spaceKey, hit.version ? `v${hit.version}` : ''].filter(Boolean).join(' · ')
-}
-
-function Hits(props: { items: PageHit[]; label: string }) {
+function Hits(props: { items: Hit[]; label: string }) {
   const current = read(selected)
+  const same = (a: Hit | null, b: Hit) => a?.product === b.product && a?.id === b.id
   return (
     <List label={props.label}>
       {props.items.map((hit) => (
         <ListItem
           title={hit.title}
-          description={describe(hit)}
-          icon="file-text"
-          current={current?.id === hit.id}
-          onPress={() => set(selected, current?.id === hit.id ? null : hit)}
+          description={hit.detail}
+          icon={hit.product === 'jira' ? 'check' : 'file-text'}
+          current={same(current, hit)}
+          onPress={() => set(selected, same(current, hit) ? null : hit)}
         />
       ))}
     </List>
   )
 }
 
-function Selected(props: { hit: PageHit }) {
+function Selected(props: { hit: Hit }) {
   const { hit } = props
   const working = read(busy) !== null
   return (
     <Stack gap="xs">
       <Text weight="semibold">{hit.title}</Text>
       <Text muted size="xs">
-        {hit.spaceName || hit.spaceKey}
-        {hit.version ? ` · version ${hit.version}` : ''}
+        {hit.detail}
         {hit.updatedAt ? ' · updated ' : ''}
         {hit.updatedAt ? <RelativeTime at={hit.updatedAt} muted /> : ''}
       </Text>
       <Row gap="xs" wrap>
-        <Button icon="file-text" disabled={working} onPress={() => openPage(hit)}>
+        <Button icon="file-text" disabled={working} onPress={() => openHit(hit)}>
           Open in tab
         </Button>
         <Button variant="outline" icon="copy" disabled={working} onPress={() => copyLink(hit)}>
           Copy link
         </Button>
-        <IconButton icon="open-external" label="Open in Confluence" tooltip="Open in Confluence" variant="ghost" onPress={() => shell.openExternal(hit.url)} />
+        <IconButton icon="open-external" label={`Open in ${NAME[hit.product]}`} tooltip={`Open in ${NAME[hit.product]}`} variant="ghost" onPress={() => shell.openExternal(hit.url)} />
       </Row>
     </Stack>
   )
 }
 
-function Connection() {
-  const s = read(status)
+function Connection(props: { p: Product }) {
+  const { p } = props
+  const s = read(status)[p]
   const working = read(busy) !== null
+  const draft = read(tokenDraft)[p]
   return (
     <Collapsible title="Connection" description={s?.user ? `Signed in as ${s.user}` : s?.hasToken ? 'Token saved' : 'Not connected'} defaultOpen={!s?.user}>
       <Stack gap="sm">
         <Text muted size="xs">
-          Base URL, sign-in type, e-mail (Cloud), spaces and link style are in Settings → Plugins → Confluence.
+          Base URL, sign-in type and e-mail (Cloud) are in Settings → Plugins → Atlassian.
           {s?.baseUrl ? ` Now: ${s.baseUrl}` : ''}
         </Text>
         <Input
-          label="Token"
+          label={`${NAME[p]} token`}
           type="password"
           placeholder={s?.hasToken ? 'Saved; paste a new one to replace it' : 'Personal access token (Data Center) or API token (Cloud)'}
-          value={read(tokenDraft)}
-          onChange={(value) => set(tokenDraft, value)}
-          onSubmit={() => saveToken()}
+          value={draft}
+          onChange={(value) => set(tokenDraft, patch(read(tokenDraft), p, value))}
+          onSubmit={() => saveToken(p)}
         />
         <Row gap="xs" wrap>
-          <Button disabled={working || !read(tokenDraft).trim()} onPress={saveToken}>
+          <Button disabled={working || !draft.trim()} onPress={() => saveToken(p)}>
             Save and test
           </Button>
-          <Button variant="outline" disabled={working || !s?.hasToken} onPress={() => refreshStatus(true)}>
+          <Button variant="outline" disabled={working || !s?.hasToken} onPress={() => work('Testing', () => refresh(p, true))}>
             Test
           </Button>
-          <Button variant="ghost" tone="danger" disabled={working || !s?.hasToken} onPress={async () => set(status, await plugin.request('conn.clearToken'))}>
+          <Button
+            variant="ghost"
+            tone="danger"
+            disabled={working || !s?.hasToken}
+            onPress={() => work('Forgetting', async () => set(status, patch(read(status), p, await plugin.request('conn.clearToken', { product: p }))))}
+          >
             Forget token
           </Button>
         </Row>
@@ -187,40 +198,73 @@ function Connection() {
   )
 }
 
-export default function Panel() {
-  const s = read(status)
-  const list = read(results)
-  const pick = read(selected)
-  const note = read(notice)
-  const working = read(busy)
-  const spaceOptions = [{ value: '', label: 'All spaces' }, ...read(spaces).map((key) => ({ value: key, label: key }))]
+function Search(props: { p: Product }) {
+  const { p } = props
+  const isJira = p === 'jira'
+  const rawOn = read(raw)[p]
+  const options = [{ value: '', label: isJira ? 'All projects' : 'All spaces' }, ...read(scopes)[p].map((key) => ({ value: key, label: key }))]
+  const found = read(results)[p]
   return (
-    <Stack gap="md">
-      <Row justify="between">
-        <Heading>Confluence</Heading>
-        {working ? <Spinner label={working} labelHidden /> : null}
-      </Row>
-      <Connection />
-      {s?.user ? (
+    <Stack gap="sm">
+      <Connection p={p} />
+      {read(status)[p]?.user ? (
         <Stack gap="sm">
           <Input
-            label="Search"
+            label={`Search ${NAME[p]}`}
             labelHidden
             type="search"
-            placeholder={read(cql) ? 'CQL, e.g. label = architecture' : 'Title or text, a page id or a page URL'}
-            value={read(query)}
-            onChange={(value) => set(query, value)}
-            onSubmit={() => runSearch()}
+            placeholder={
+              isJira
+                ? rawOn
+                  ? 'JQL, e.g. project = DOC AND status = "In Progress"'
+                  : 'Text or an issue key; empty lists your open issues'
+                : rawOn
+                  ? 'CQL, e.g. label = architecture'
+                  : 'Title or text, a page id or a page URL'
+            }
+            value={read(query)[p]}
+            onChange={(value) => set(query, patch(read(query), p, value))}
+            onSubmit={() => runSearch(p)}
           />
           <Row gap="sm" wrap>
-            <Select label="Space" labelHidden value={read(space)} options={spaceOptions} onChange={(value) => set(space, value)} />
-            <Switch label="CQL" checked={read(cql)} onChange={(value) => set(cql, value)} />
-            <Button size="sm" disabled={working !== null} onPress={runSearch}>
+            <Select label={isJira ? 'Project' : 'Space'} labelHidden value={read(scope)[p]} options={options} onChange={(value) => set(scope, patch(read(scope), p, value))} />
+            <Switch label={isJira ? 'JQL' : 'CQL'} checked={rawOn} onChange={(value) => set(raw, patch(read(raw), p, value))} />
+            <Button size="sm" disabled={read(busy) !== null} onPress={() => runSearch(p)}>
               Search
             </Button>
           </Row>
         </Stack>
       ) : null}
+      {found && found.items.length ? (
+        <Hits items={found.items} label={found.total > found.items.length ? `${found.items.length} of ${found.total} results` : `${found.items.length} results`} />
+      ) : null}
+      {found && !found.items.length && !read(notice) ? <EmptyState title="Nothing found" icon="search" /> : null}
+    </Stack>
+  )
+}
+
+export default function Panel() {
+  const note = read(notice)
+  const pick = read(selected)
+  const working = read(busy)
+  return (
+    <Stack gap="md">
+      <Row gap="xs" align="end">
+        <Input
+          label="Open a link"
+          placeholder="Paste a Jira or Confluence link, or an issue key"
+          value={read(linkDraft)}
+          onChange={(value) => set(linkDraft, value)}
+          onSubmit={() => openLink()}
+        />
+        <Button size="sm" disabled={working !== null || !read(linkDraft).trim()} onPress={openLink}>
+          Open
+        </Button>
+        {working ? <Spinner label={working} labelHidden /> : null}
+      </Row>
+      <Text muted size="xs">
+        Or copy a link anywhere and press Ctrl+Alt+O (Atlassian: Open copied link).
+      </Text>
       {note ? (
         <Callout tone={note.tone}>
           {note.text}
@@ -228,10 +272,16 @@ export default function Panel() {
         </Callout>
       ) : null}
       {pick ? <Selected hit={pick} /> : null}
-      {list && list.length ? <Hits items={list} label={read(total) > list.length ? `${list.length} of ${read(total)} results` : `${list.length} results`} /> : null}
-      {list && !list.length && !note ? <EmptyState title="No pages found" icon="search" /> : null}
+      <Tabs label="Product" value={read(product)} onChange={(value) => set(product, value as Product)}>
+        <Tab value="confluence" label="Confluence" icon="book">
+          <Search p="confluence" />
+        </Tab>
+        <Tab value="jira" label="Jira" icon="check">
+          <Search p="jira" />
+        </Tab>
+      </Tabs>
       {read(recent).length ? (
-        <Collapsible title="Recently opened" defaultOpen={!list}>
+        <Collapsible title="Recently opened" defaultOpen={false}>
           <Hits items={read(recent)} label="Recently opened" />
         </Collapsible>
       ) : null}
