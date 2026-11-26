@@ -237,11 +237,15 @@ export default function activate(orca: OrcaWorkerApi): void {
     }
   })
 
-  // Copy a link (Orca's link menu has Copy link), then press the shortcut: it opens in a tab here.
-  orca.commands.register('open-copied-link', async () => {
+  async function openCopied(): Promise<Outcome> {
     const text = await readText()
-    if (!text?.trim()) return 'The clipboard is empty. Copy a Jira or Confluence link first.'
-    const outcome = await openLink(text)
-    return outcome.message
-  })
+    if (!text?.trim()) return { ok: false, message: 'The clipboard is empty. Copy a Jira or Confluence link first.' }
+    return openLink(text)
+  }
+
+  // Copy a link (Orca's and Markdown Themes' link menus have Copy link), then run this from the
+  // shortcut, the status bar or the panel. Orca drops shortcuts pressed inside a plugin's editor,
+  // so the status bar item is the way from there.
+  orca.commands.register('open-copied-link', async () => (await openCopied()).message)
+  orca.panels.handle('link.openCopied', () => openCopied())
 }

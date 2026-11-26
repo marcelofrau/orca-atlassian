@@ -18,8 +18,10 @@ your code and agents.
 
 ## Features
 
-- **Open copied link** (`Ctrl+Shift+L`, `Cmd+Shift+L` on macOS): copy any Jira or Confluence link
-  (Orca's link menu has **Copy link**), press the shortcut, and it opens in a tab. Also takes a
+- **Open copied link**: copy any Jira or Confluence link (Orca's link menu and
+  [Markdown Themes](https://github.com/marcelofrau/orca-markdown-themes)' have **Copy link**), then
+  click **Open link** in the status bar, press `Ctrl+Shift+L` (`Cmd+Shift+L` on macOS), or press
+  **Open copied link** in the panel, and it opens in a tab. Also takes a
   bare issue key such as `DOC-12`, a page id, or an old `/display/SPACE/Title` link.
 - **Jira**: search by text, issue key, issue URL or raw JQL, filtered by the projects in Settings;
   an empty search lists your open issues. An issue opens with its fields, description, sub-tasks,
@@ -70,7 +72,7 @@ orca plugin install marcelofrau/orca-atlassian --approve <fingerprint>
 
 | You want to | Do |
 | --- | --- |
-| Read a link you see in a terminal, chat or doc | **Copy link** on it, then `Ctrl+Shift+L` |
+| Read a link you see in a terminal, chat or doc | **Copy link** on it, then **Open link** in the status bar (or `Ctrl+Shift+L`) |
 | Read a link or key you have | Paste it in **Open a link** at the top of the panel |
 | Find an issue or page | Search on the **Jira** or **Confluence** tab; switch **JQL**/**CQL** on for raw queries |
 | See your open issues | Search Jira with an empty box |
@@ -86,7 +88,9 @@ open it again to refresh.
 
 - Read-only: nothing is written to Jira or Confluence.
 - Orca has no way for plugins to add items to its link menu, so links go through **Copy link** and
-  the shortcut (or the panel's **Open a link** box).
+  **Open link** (or the panel's **Open a link** box).
+- Orca ignores shortcuts pressed inside a plugin's editor view (such as Markdown Themes), except
+  save, so `Ctrl+Shift+L` does nothing there; use the status bar item.
 - Images, attachments and draw.io diagrams are links, not pictures. Unknown Confluence macros show
   as *[name macro]* or keep their body.
 - Links inside a copy point to Jira or Confluence, not to other copies.

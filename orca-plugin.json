@@ -2,7 +2,7 @@
   "manifestVersion": 2,
   "id": "atlassian",
   "name": "Atlassian",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Read Jira issues and Confluence pages inside Orca, without the browser sign-in: search from the sidebar, open as read-only Markdown tabs, open any copied link with Ctrl+Shift+L, copy [Exact title](url) links. Data Center, Server and Cloud.",
   "author": {
     "name": "Marcelo Frau",
@@ -132,6 +132,15 @@
         "type": "string",
         "default": "",
         "maxLength": 500
+      }
+    ],
+    "statusBarItems": [
+      {
+        "id": "open-link",
+        "text": "Open link",
+        "icon": "link",
+        "tooltip": "Atlassian: open the copied Jira or Confluence link in a tab (Ctrl+Shift+L)",
+        "command": "open-copied-link"
       }
     ]
   },

@@ -97,6 +97,12 @@ const openLink = () =>
     if (answer.ok) set(linkDraft, '')
   })
 
+const openCopied = () =>
+  work('Opening', async () => {
+    const answer = await plugin.request('link.openCopied', undefined, { timeoutMs: 60_000 })
+    set(notice, { tone: answer.ok ? 'success' : 'danger', text: answer.message })
+  })
+
 const saveUrl = (p: Product) =>
   work('Saving', async () => {
     set(status, patch(read(status), p, await plugin.request('conn.configure', { product: p, baseUrl: read(urlDraft)[p] ?? '' })))
@@ -281,9 +287,14 @@ export default function Panel() {
         </Button>
         {working ? <Spinner label={working} labelHidden /> : null}
       </Row>
-      <Text muted size="xs">
-        Or copy a link anywhere and press Ctrl+Shift+L (Atlassian: Open copied link).
-      </Text>
+      <Row gap="xs" align="center" wrap>
+        <Button size="sm" variant="outline" icon="link" disabled={working !== null} onPress={openCopied}>
+          Open copied link
+        </Button>
+        <Text muted size="xs">
+          Also the Open link item in the status bar, or Ctrl+Shift+L outside plugin views.
+        </Text>
+      </Row>
       {note ? (
         <Callout tone={note.tone}>
           {note.text}

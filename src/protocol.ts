@@ -50,6 +50,8 @@ declare module 'orca' {
     open: { input: { product: Product; id: string }; output: Outcome }
     /** Opens whatever Jira or Confluence link or issue key is in `text`. */
     'link.open': { input: { text: string }; output: Outcome }
+    /** Opens the Jira or Confluence link on the clipboard, like the Open copied link command. */
+    'link.openCopied': { output: Outcome }
     /** Copies `[Exact title](url)` (or `[KEY: Summary](url)`) to the clipboard. */
     copyLink: { input: { product: Product; id: string }; output: Outcome & { text?: string } }
   }
